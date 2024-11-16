@@ -1,3 +1,9 @@
+import Image from "next/image";
+import { Delta, Op } from "quill/core";
+import { MdSend } from "react-icons/md";
+import { PiTextAa } from "react-icons/pi";
+import Quill, { type QuillOptions } from "quill";
+import { ImageIcon, Smile, Upload, XIcon } from "lucide-react";
 import {
   MutableRefObject,
   useEffect,
@@ -5,20 +11,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Delta, Op } from "quill/core";
-import { PiTextAa } from "react-icons/pi";
-import { MdSend } from "react-icons/md";
-import { ImageIcon, Smile } from "lucide-react";
-import Quill, { type QuillOptions } from "quill";
+
+import { cn } from "@/lib/utils";
 
 import { Hint } from "./hint";
 import { Button } from "./ui/button";
 import { EmojiPopover } from "./emoji-popover";
 
-import { cn } from "@/lib/utils";
-
 import "quill/dist/quill.snow.css";
-import { list } from "postcss";
 
 type EditorValue = {
   image: File | null;
@@ -45,6 +45,7 @@ const Editor = ({
   variant = "create",
 }: EditorProps) => {
   const [text, setText] = useState("");
+  const [image, setImage] = useState<File | null>(null);
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
 
   // 創建 refs 保存 props 值，避免因為 props 改變導致不必要的重新渲染
@@ -54,6 +55,7 @@ const Editor = ({
   const defaultValueRef = useRef(defaultValue);
   const containRef = useRef<HTMLDivElement>(null);
   const disableRef = useRef(disabled);
+  const imageElementRef = useRef<HTMLInputElement>(null);
 
   // 使用 useLayoutEffect 即時更新 refs，確保在瀏覽器重繪之前就完成更新，避免畫面閃爍
   useLayoutEffect(() => {
@@ -149,8 +151,38 @@ const Editor = ({
 
   return (
     <div className="flex flex-col">
+      <input
+        type="file"
+        accept="image/*"
+        ref={imageElementRef}
+        onChange={(event) => setImage(event.target.files![0])}
+        className="hidden"
+      />
       <div className="flex flex-col border border-slate-200 rounded-md overflow-hidden focus-within:border-slate-300 focus-within:shadow-sm transition bg-white">
         <div ref={containRef} className="h-full ql-custom" />
+        {!!image && (
+          <div className="p-2">
+            <div className="relative size-[62px] flex items-center justify-center group/image">
+              <Hint label="Remove image">
+                <button
+                  onClick={() => {
+                    setImage(null);
+                    imageElementRef.current!.value = "";
+                  }}
+                  className="hidden group-hover/image:flex rounded-full bg-black/70 hover:bg-black absolute -top-2.5 -right-2.5 text-white size-6 z-[4] border-2 border-white items-center justify-center"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              </Hint>
+              <Image
+                src={URL.createObjectURL(image)} // 創建預覽 URL
+                alt="Uploaded"
+                fill
+                className="rounded-xl overflow-hidden border object-cover"
+              />
+            </div>
+          </div>
+        )}
         <div className="flex px-2 pb-2 z-[5]">
           <Hint label={isToolbarVisible ? "Hide toolbar" : "Show toolbar"}>
             <Button
@@ -173,7 +205,7 @@ const Editor = ({
                 disabled={disabled}
                 size="iconSm"
                 variant="ghost"
-                onClick={() => {}}
+                onClick={() => imageElementRef.current?.click()} // 點擊時觸發隱藏的 input
               >
                 <ImageIcon className="size-4" />
               </Button>
